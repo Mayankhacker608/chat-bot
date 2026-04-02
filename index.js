@@ -1,12 +1,7 @@
-// for small answer short use it
-//   text:
-//   "Answer ONLY what the user asked. Keep it short, clear, and to the point. Do not give extra explanation.\n\nUser Question:\n" +
-//   chatHistory[chatHistory.length - 1].content
-
 // ---------------------------
 // Configuration
 // ---------------------------
-const GEMINI_API_KEY = "AIzaSyBIJMcTMkOzeTKUmNIRNMfNCgMC9Hkw0O4"; // 🔴 PUT YOUR REAL KEY
+const GEMINI_API_KEY = "AIzaSyBtI4RXFZxocREmajUirxKg0W2IG5wwuLw"; // 🔴 PUT YOUR REAL KEY
 
 // ---------------------------
 // State
@@ -97,6 +92,10 @@ function setSendEnabled(enabled) {
 
 async function fetchAIResponse() {
   try {
+    const userInput = chatHistory.length
+      ? chatHistory[chatHistory.length - 1].content
+      : "";
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -110,28 +109,9 @@ async function fetchAIResponse() {
               role: "user",
               parts: [
                 {
-                  text: `
-You are a smart AI assistant.
-
-Your job:
-- Understand the user's question clearly
-- Give accurate and helpful answers
-- Keep responses clear, structured, and easy to read
-
-Rules:
-- Answer only what the user asked
-- Keep answer concise but complete
-- Use bullet points only when helpful
-- Use simple language (easy to understand)
-- Do not add unnecessary extra information
-- If question is small → give short answer
-- If question needs explanation → explain step-by-step
-- If user asks coding → give clean and correct code
-- If unsure → say "I’m not sure" instead of guessing
-
-User Question:
-${chatHistory[chatHistory.length - 1].content}
-`,
+                  text:
+                    "Answer ONLY what the user asked. Keep it short, clear, and to the point. Do not give extra explanation.\n\nUser Question:\n" +
+                    userInput,
                 },
               ],
             },
@@ -144,7 +124,17 @@ ${chatHistory[chatHistory.length - 1].content}
     console.log("Gemini Response:", data);
 
     if (!response.ok) {
-      throw new Error(data.error?.message || "API error");
+      console.log("FULL ERROR:", data); // 👈 add this
+
+      if (response.status === 429) {
+        return "⚠️ Too many requests. Wait 30–60 seconds.";
+      }
+
+      if (response.status === 403) {
+        return "❌ API key blocked or invalid.";
+      }
+
+      return data.error?.message || "API error";
     }
 
     return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
